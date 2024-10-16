@@ -23,6 +23,8 @@ export default async function handleR2Upload(
 ) {
 
   switch (endpoint) {
+    case 'get-upload-parameter':
+      return getUploadParameter(req, res);
     case 'create-multipart-upload':
       return createMultipartUpload(req, res);
     case 'prepare-upload-parts':
@@ -51,6 +53,35 @@ export async function simpleUpload(data: Buffer, key: string, contentType: strin
   await R2.send(command);
 
   return CLOUDFLARE_BUCKET_URL + '/' + key;
+}
+
+export async function getUploadParameter(
+  req: Request,
+  res: Response
+) {
+  const { file, fileHash, contentType } = req.body;
+  const filename = file.name;
+  try {
+    const params = {
+      Bucket: CLOUDFLARE_BUCKETNAME,
+      Key: `resources/${fileHash}/${filename}`,
+    };
+
+    const command = new PutObjectCommand({ ...params });
+    const url = await getSignedUrl(R2, command, { expiresIn: 3600 });
+
+    return res.status(200).json({
+      method: 'PUT',
+      url: url,
+      fields: {},
+      headers: {
+        'content-type': contentType
+      }
+    });
+  } catch (err) {
+    console.log('Error', err);
+    return res.status(500).json(err);
+  }
 }
 
 export async function createMultipartUpload(

@@ -25,6 +25,16 @@ export const getUppyUploadPlugin = (provider: string, fetch: any, backendUrl: st
         return {
           plugin: AwsS3Multipart,
           options: {
+            getUploadParameters: async (file: any, options: any) => {
+              const arrayBuffer = await new Response(file.data).arrayBuffer();
+              const fileHash = sha256(Buffer.from(arrayBuffer));
+              const contentType = file.type;
+              return fetchUploadApiEndpoint(fetch, 'get-upload-parameter', { 
+                file,
+                fileHash,
+                contentType,
+              });
+            },
             createMultipartUpload: async (file: any) => {
               const arrayBuffer = await new Response(file.data).arrayBuffer();
               const fileHash = sha256(Buffer.from(arrayBuffer));
